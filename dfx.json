@@ -1,0 +1,35 @@
+{
+  "canisters": {
+    "QOI_backend": {
+      "main": "src/QOI_backend/main.mo",
+      "type": "motoko"
+    },
+    "QOI_frontend": {
+      "dependencies": [
+        "QOI_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/QOI_frontend/src/index.html"
+      },
+      "source": [
+        "src/QOI_frontend/assets",
+        "dist/QOI_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "dfx": "0.11.2",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
