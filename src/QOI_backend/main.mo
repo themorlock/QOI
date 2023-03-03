@@ -25,4 +25,16 @@ actor {
       };
     };
   };
+  
+  public func getPerceptualHash(input : QOI.SharedBitmap) : async Result.Result<QOI.PerceptualHash, ()> {
+    let value = QOI.computePerceptualHash(QOI.fromSharedBitmap(input));
+    switch (value) {
+      case (#ok(x)) {
+        return #ok(x);
+      };
+      case (#err()) {
+        return #err(());
+      };
+    };
+  };
 };

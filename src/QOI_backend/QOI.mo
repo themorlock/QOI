@@ -6,6 +6,7 @@ import Nat8 "mo:base/Nat8";
 import Nat32 "mo:base/Nat32";
 import Prim "mo:⛔";
 import Result "mo:base/Result";
+import Iter "mo:base/Iter";
 
 module {
   public type Description = {
@@ -33,6 +34,10 @@ module {
   public type QOI = {
     desc : Description;
     data: Buffer.Buffer<Nat8>;
+  };
+
+  public type PerceptualHash = {
+    theHash : [Nat8];
   };
 
   let QOI_PIXELS_MAX : Nat32 = 400000000;
@@ -325,5 +330,66 @@ module {
     };
 
     return #ok(output);
+  };
+
+  private func shrink(input : Bitmap) : [Nat8] {
+    let output : Buffer.Buffer<Nat8> = Buffer.Buffer<Nat8>(0);
+
+    let xStep : Nat32 = input.desc.width / 16;
+    let yStep : Nat32 = input.desc.height / 16;
+
+    var y : Nat32 = 0;
+    while (y < 16) {
+      var x : Nat32 = 0;
+      while (x < 16) {
+        output.add(input.data.get(Nat32.toNat(x * xStep + y * yStep * input.desc.width)));
+        output.add(input.data.get(Nat32.toNat(x * xStep + y * yStep * input.desc.width) + 1));
+        output.add(input.data.get(Nat32.toNat(x * xStep + y * yStep * input.desc.width) + 2));
+        x := x + 1;
+      };
+      y := y + 1;
+    };
+
+    return Buffer.toArray(output);
+  };
+
+  private func toGrayscale(input : [Nat8]) : [Nat8] {
+    let output : Buffer.Buffer<Nat8> = Buffer.Buffer<Nat8>(0);
+
+    var i : Nat32 = 0;
+    while (i < 256) {
+      output.add(Prim.intToNat8Wrap(Int32.toInt((Prim.nat32ToInt32(Prim.natToNat32(Nat8.toNat(input[Nat32.toNat(i * 3)]))) 
+      * 299 + (Prim.nat32ToInt32(Prim.natToNat32(Nat8.toNat(input[Nat32.toNat(i * 3) + 1]))) * 587) 
+      + (Prim.nat32ToInt32(Prim.natToNat32(Nat8.toNat(input[Nat32.toNat(i * 3) + 2]))) * 114)) / 1000)));
+      i := i + 1;
+    };
+
+    return Buffer.toArray(output);
+  };
+
+  private func averageValue(input : [Nat8]) : Nat8 {
+    var sum : Nat = 0;
+    for (i in Iter.range(0, 255)) {
+      sum := sum + Nat8.toNat(input[i]);
+    };
+    return Nat8.fromNat(sum / 256);
+  };
+
+  public func computePerceptualHash(input : Bitmap) : Result.Result<PerceptualHash, ()> {
+    let shrinked : [Nat8] = shrink(input);
+    let grayscale : [Nat8] = toGrayscale(shrinked);
+
+    let average : Nat8 = averageValue(grayscale);
+    let hash : Buffer.Buffer<Nat8> = Buffer.Buffer<Nat8>(0);
+    for (i in Iter.range(0, 255)) {
+      if (grayscale[i] > average) {
+        hash.add(1);
+      } else {
+        hash.add(0);
+      };
+    };
+    return #ok({
+      theHash = Buffer.toArray(hash);
+    });
   };
 };
